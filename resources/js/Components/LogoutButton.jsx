@@ -1,14 +1,20 @@
-import { Link } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 
 export default function LogoutButton() {
+    const { post } = useForm();
+
+    const handleLogout = () => {
+        post(route('logout'));
+    };
+
     return (
-        <Link
-            href={route('logout')}
-            method="post"
-            as="button"
-            className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600"
+
+        <button
+        onClick={handleLogout}
+        className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600"
         >
             ログアウト
-        </Link>
+        </button>
     );
 }
+

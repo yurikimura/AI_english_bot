@@ -1,9 +1,89 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Head } from '@inertiajs/react'
 import { Component as SideMenu } from '../../Components/SideMenu'
 import LogoutButton from '@/Components/LogoutButton'
 
-export default function Show({ threads, messages }) {
+export default function Show({ threads = [], initialMessages = [] }) {
+  const [messages, setMessages] = useState(initialMessages || []);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      chunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/mp3' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+
+        try {
+          if (!threads || threads.length === 0) {
+            console.error('No thread available');
+            alert('スレッドが見つかりません。');
+            return;
+          }
+
+          const response = await fetch(`/api/threads/${threads[0].id}/messages`, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            },
+            body: formData,
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setMessages(prevMessages => [...prevMessages, data.message]);
+            } else {
+              console.error('API response was not successful:', data);
+              alert('メッセージの送信に失敗しました。');
+            }
+          } else {
+            console.error('API request failed:', response.status);
+            alert('サーバーエラーが発生しました。');
+          }
+        } catch (error) {
+          console.error('Error sending audio:', error);
+        }
+
+        // クリーンアップ
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error accessing microphone:', error);
+      alert('マイクへのアクセスができませんでした。ブラウザの設定を確認してください。');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleRecordingClick = () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
+  };
+
   // メッセージの送信者を変換する関数
   const getSenderDisplay = (senderCode) => {
     return senderCode === 1 ? "You" : "AI";
@@ -23,7 +103,7 @@ export default function Show({ threads, messages }) {
 
           <div className="flex-1 overflow-y-auto">
             <div className="mb-20">
-              {messages.map((message) => {
+              {messages?.map((message) => {
                 const senderDisplay = getSenderDisplay(message.sender);
                 return (
                   <div
@@ -61,7 +141,10 @@ export default function Show({ threads, messages }) {
           </div>
 
           <div className="h-20 shrink-0 flex items-center justify-center">
-            <button className="bg-green-600 p-4 rounded-full hover:bg-green-700 transition-colors">
+            <button
+              className={`${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} p-4 rounded-full transition-colors`}
+              onClick={handleRecordingClick}
+            >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
               </svg>
