@@ -60,17 +60,50 @@ class MessageController extends Controller
                 }
 
                 $message_en = $response['text'];
-                $message_ja = $apiService->translateText($message_en, 'ja');
+                $message_ja = ''; // 空文字列を設定
 
                 // メッセージを更新
                 $message->update([
                     'message_en' => $message_en,
-                    'message_ja' => $message_ja
                 ]);
 
                 Log::info('音声処理完了', [
                     'message_en' => $message_en,
-                    'message_ja' => $message_ja
+                ]);
+
+                $messages = Message::where('thread_id', $thread_id)->get();
+                // GPTにAPIリクエストして応答を取得
+                $gptResponse = $apiService->callGptApi($messages);
+
+                // AIの応答をDBに保存
+                $assistantMessage = Message::create([
+                    'thread_id' => $thread_id,
+                    'message_en' => $gptResponse['choices'][0]['message']['content'],
+                    'message_ja' => '',
+                    'sender' => Message::SENDER_AI,
+                    'audio_file_path' => null,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => [
+                        'id' => $message->id,
+                        'thread_id' => $thread_id,
+                        'message_en' => $message_en,
+                        'message_ja' => $message_ja,
+                        'sender' => Message::SENDER_USER,
+                        'audio_file_path' => $path,
+                        'created_at' => $message->created_at,
+                        'assistant_message' => [
+                            'id' => $assistantMessage->id,
+                            'thread_id' => $thread_id,
+                            'message_en' => $assistantMessage->message_en,
+                            'message_ja' => '',
+                            'sender' => Message::SENDER_AI,
+                            'audio_file_path' => null,
+                            'created_at' => $assistantMessage->created_at
+                        ]
+                    ]
                 ]);
 
             } catch (\Exception $e) {
@@ -82,25 +115,12 @@ class MessageController extends Controller
                         'thread_id' => $thread_id,
                         'message_en' => 'dummy',
                         'message_ja' => 'API処理中にエラーが発生しました',
-                        'sender' => 1,
+                        'sender' => Message::SENDER_USER,
                         'audio_file_path' => $path,
                         'created_at' => $message->created_at
                     ]
                 ]);
             }
-
-            return response()->json([
-                'success' => true,
-                'message' => [
-                    'id' => $message->id,
-                    'thread_id' => $thread_id,
-                    'message_en' => $message_en,
-                    'message_ja' => $message_ja,
-                    'sender' => 1,
-                    'audio_file_path' => $path,
-                    'created_at' => $message->created_at
-                ]
-            ]);
 
         } catch (\Exception $e) {
             Log::error('予期せぬエラー: ' . $e->getMessage());

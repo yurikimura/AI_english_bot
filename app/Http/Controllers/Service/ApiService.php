@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Service;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use App\Models\Message;
 
 class ApiService
 {
@@ -27,9 +28,38 @@ class ApiService
         return $response->json();
     }
 
-    public function translateText($text, $targetLang)
+    /**
+     * @param Collection<Messages>
+     */
+
+    public function callGptApi($modelMessages)
     {
-        // 翻訳の実装（必要に応じて）
-        return $text;  // 仮の実装
+        $systemMessage = [
+            'role' => 'system',
+            'content' => 'You are a helpful English teacher. Please speak English'
+        ];
+
+        $message = $modelMessages->map(function($message){
+            return [
+                'role' => $message->sender === Message::SENDER_USER ? 'user' : 'assistant',
+                'content' => $message->message_en
+            ];
+        })->toArray();
+
+        $messages = array_merge([$systemMessage], $message);
+
+        /**
+         * @param Collection<Messages>
+         */
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => $messages,
+            'temperature' => 0.7,
+            'max_tokens' => 259,
+        ]);
+        return $response->json();
     }
 }
