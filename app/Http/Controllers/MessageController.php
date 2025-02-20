@@ -60,14 +60,10 @@ class MessageController extends Controller
                 }
 
                 $message_en = $response['text'];
-                $message_ja = ''; // 空文字列を設定
+                $message_ja = '';
 
                 // メッセージを更新
                 $message->update([
-                    'message_en' => $message_en,
-                ]);
-
-                Log::info('音声処理完了', [
                     'message_en' => $message_en,
                 ]);
 
@@ -80,8 +76,8 @@ class MessageController extends Controller
                     'thread_id' => $thread_id,
                     'message_en' => $gptResponse['choices'][0]['message']['content'],
                     'message_ja' => '',
-                    'sender' => Message::SENDER_AI,
-                    'audio_file_path' => null,
+                    'sender' => 2,
+                    'audio_file_path' => '',
                 ]);
 
                 return response()->json([

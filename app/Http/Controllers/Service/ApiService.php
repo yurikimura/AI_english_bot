@@ -58,7 +58,7 @@ class ApiService
             'model' => 'gpt-4o-mini',
             'messages' => $messages,
             'temperature' => 0.7,
-            'max_tokens' => 259,
+            'max_tokens' => 1000,
         ]);
         return $response->json();
     }

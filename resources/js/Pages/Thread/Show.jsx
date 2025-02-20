@@ -29,12 +29,6 @@ export default function Show({ threads, initialMessages = [], threadId }) {
         formData.append('audio', audioBlob, 'audio.mp3');
 
         try {
-          if (!threadId) {
-            console.error('スレッドIDが見つかりません');
-            alert('スレッドが見つかりません。');
-            return;
-          }
-
           const response = await axios.post(`/thread/${threadId}/message`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
@@ -42,7 +36,11 @@ export default function Show({ threads, initialMessages = [], threadId }) {
           });
 
           if (response.data.success) {
-            setMessages(prevMessages => [...prevMessages, response.data.message]);
+            setMessages(prevMessages => [
+              ...prevMessages,
+              response.data.message,
+              response.data.message.assistant_message
+            ]);
           } else {
             console.error('APIレスポンスエラー:', response.data);
             alert(response.data.message || 'メッセージの送信に失敗しました。');
