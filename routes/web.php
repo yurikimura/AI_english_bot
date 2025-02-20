@@ -17,8 +17,8 @@ Route::get('/', function () {
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/top', [TopController::class, 'index'])->name('top.index');
-    Route::get('/threads', [ThreadController::class, 'index'])->name('threads.index');
-    Route::get('/threads/{thread}', [ThreadController::class, 'show'])->name('threads.show');
+    Route::get('/thread', [ThreadController::class, 'index'])->name('thread.index');
+    Route::get('/thread/{thread}', [ThreadController::class, 'show'])->name('thread.show');
     Route::get('/thread', [ThreadController::class, 'store'])->name('thread.store');
     Route::post('/thread/{thread_id}/message', [MessageController::class, 'store'])->name('message.store');
 });

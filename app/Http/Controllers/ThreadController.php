@@ -40,7 +40,7 @@ class ThreadController extends Controller
             'title' => now()->format('Y/m/d H:i')
         ]);
 
-        return redirect()->route('thread.show', ['thread_id' => $thread->id]);
+        return redirect()->route('thread.show', ['thread' => $thread->id]);
     }
 
     /**
