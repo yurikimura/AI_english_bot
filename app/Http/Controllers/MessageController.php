@@ -71,13 +71,21 @@ class MessageController extends Controller
                 // GPTにAPIリクエストして応答を取得
                 $gptResponse = $apiService->callGptApi($messages);
 
+                $aiMessageText = $gptResponse['choices'][0]['message']['content'];
                 // AIの応答をDBに保存
                 $assistantMessage = Message::create([
                     'thread_id' => $thread_id,
-                    'message_en' => $gptResponse['choices'][0]['message']['content'],
+                    'message_en' => $aiMessageText,
                     'message_ja' => '',
                     'sender' => 2,
                     'audio_file_path' => '',
+                ]);
+
+                // TTSにAPIリクエストして音声ファイルを生成
+                $aiAudioFilePath = $apiService->callTtsApi($aiMessageText);
+                // 音声ファイルをDBに保存
+                $assistantMessage->update([
+                    'audio_file_path' => $aiAudioFilePath, // 音声ファイルのパスを保存
                 ]);
 
                 return response()->json([

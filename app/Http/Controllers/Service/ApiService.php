@@ -61,5 +61,26 @@ class ApiService
             'max_tokens' => 1000,
         ]);
         return $response->json();
+        }
+        /**
+         * @param string $aiMessageText
+         */
+        public function callTtsApi($aiMessageText)
+        {
+            $response = Http::withHeaders([
+                'content-type' => 'application/json',
+                'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            ])->post('https://api.openai.com/v1/audio/speech', [
+                'model' => 'tts-1',
+                'input' => $aiMessageText,
+                'voice' => 'nova',
+            ]);
+
+            // 音声ファイルを保存
+            $filename = 'speech_' . now()->format('Ymd_His') . '.mp3';
+            $filePath = storage_path('app/public/ai_audio/' . $filename);
+            file_put_contents($filePath, $response->body());
+
+            return 'ai_audio/' . $filename;
+        }
     }
-}
