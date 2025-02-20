@@ -3,9 +3,10 @@ import { Head } from '@inertiajs/react'
 import { Component as SideMenu } from '../../Components/SideMenu'
 import LogoutButton from '@/Components/LogoutButton'
 
-export default function Show({ threads = [], initialMessages = [] }) {
+export default function Show({ threads, initialMessages = [], threadId }) {
   const [messages, setMessages] = useState(initialMessages || []);
   const [isRecording, setIsRecording] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
 
@@ -22,43 +23,42 @@ export default function Show({ threads = [], initialMessages = [] }) {
       };
 
       mediaRecorderRef.current.onstop = async () => {
+        setIsLoading(true);
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/mp3' });
         const formData = new FormData();
-        formData.append('audio', audioBlob);
+        formData.append('audio', audioBlob, 'audio.mp3');
 
         try {
-          if (!threads || threads.length === 0) {
-            console.error('No thread available');
+          if (!threadId) {
+            console.error('スレッドIDが見つかりません');
             alert('スレッドが見つかりません。');
             return;
           }
 
-          const response = await fetch(`/api/threads/${threads[0].id}/messages`, {
-            method: 'POST',
+          const response = await axios.post(`/thread/${threadId}/message`, formData, {
             headers: {
-              'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+              'Content-Type': 'multipart/form-data',
             },
-            body: formData,
           });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              setMessages(prevMessages => [...prevMessages, data.message]);
-            } else {
-              console.error('API response was not successful:', data);
-              alert('メッセージの送信に失敗しました。');
-            }
+          if (response.data.success) {
+            setMessages(prevMessages => [...prevMessages, response.data.message]);
           } else {
-            console.error('API request failed:', response.status);
-            alert('サーバーエラーが発生しました。');
+            console.error('APIレスポンスエラー:', response.data);
+            alert(response.data.message || 'メッセージの送信に失敗しました。');
           }
         } catch (error) {
-          console.error('Error sending audio:', error);
+          console.error('エラー詳細:', error);
+          console.error('エラーレスポンス:', error.response?.data);
+          alert(error.response?.data?.message || 'サーバーエラーが発生しました。');
+        } finally {
+          setIsLoading(false);
         }
 
-        // クリーンアップ
-        stream.getTracks().forEach(track => track.stop());
+        chunksRef.current = [];
+        if (mediaRecorderRef.current.stream) {
+          mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+        }
       };
 
       mediaRecorderRef.current.start();
@@ -92,6 +92,12 @@ export default function Show({ threads = [], initialMessages = [] }) {
   return (
     <>
       <Head title="Show" />
+      {isLoading && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 border-t-blue-600"></div>
+        </div>
+      )}
+
       <div className="flex min-h-screen bg-gray-700">
         <SideMenu threads={threads} />
         <div className="flex-1 h-screen p-8 flex flex-col">
@@ -142,8 +148,11 @@ export default function Show({ threads = [], initialMessages = [] }) {
 
           <div className="h-20 shrink-0 flex items-center justify-center">
             <button
-              className={`${isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'} p-4 rounded-full transition-colors`}
+              className={`${
+                isRecording ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              } p-4 rounded-full transition-colors ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={handleRecordingClick}
+              disabled={isLoading}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />

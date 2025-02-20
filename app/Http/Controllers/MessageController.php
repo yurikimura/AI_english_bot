@@ -12,28 +12,54 @@ class MessageController extends Controller
     public function store(Request $request, int $thread_id)
     {
         try {
-            //音声データの保存
-            if ($request->hasFile('audio')) {
-                $audio = $request->file('audio');
-                $timestamp = now()->format('YmdHis');
-                $filename = "audio_{$timestamp}.mp3";
-                $path = $audio->storeAs('audio', $filename, 'public');
+            if (!$request->hasFile('audio')) {
+                Log::error('音声ファイルが見つかりません');
+                return response()->json(['success' => false, 'message' => 'オーディオファイルが見つかりません'], 400);
+            }
 
-                // ここでメッセージをデータベースに保存する処理を追加
+            $audio = $request->file('audio');
+
+            // ファイルのバリデーション
+            if (!$audio->isValid()) {
+                Log::error('無効な音声ファイル');
+                return response()->json(['success' => false, 'message' => '無効な音声ファイルです'], 400);
+            }
+
+            $timestamp = now()->format('YmdHis');
+            $filename = "audio_{$timestamp}.mp3";
+
+            try {
+                $path = $audio->storeAs('audio', $filename, 'public');
+                Log::info('音声ファイル保存パス: ' . $path);
+            } catch (\Exception $e) {
+                Log::error('音声ファイル保存エラー: ' . $e->getMessage());
+                return response()->json(['success' => false, 'message' => '音声ファイルの保存に失敗しました'], 500);
+            }
+
+            // 初期状態でメッセージを保存
+            try {
                 $message = Message::create([
                     'thread_id' => $thread_id,
-                    'message_en' => 'dummy',
-                    'message_ja' => '',
-                    'sender' => 1, // ユーザーからの送信
+                    'message_en' => 'dummy',  // 初期値を設定
+                    'message_ja' => '',       // 初期値を設定
+                    'sender' => 1,
                     'audio_file_path' => $path,
                 ]);
+            } catch (\Exception $e) {
+                Log::error('メッセージ保存エラー: ' . $e->getMessage());
+                return response()->json(['success' => false, 'message' => 'メッセージの保存に失敗しました'], 500);
+            }
 
-                // 音声データをAPIに連携
+            // APIサービスの呼び出し
+            try {
                 $apiService = new ApiService();
                 $response = $apiService->callWisperApi($path);
-                $message_en = $response['text'];
 
-                // 英語から日本語に翻訳
+                if (!isset($response['text'])) {
+                    throw new \Exception('Whisper APIからのレスポンスに text が含まれていません');
+                }
+
+                $message_en = $response['text'];
                 $message_ja = $apiService->translateText($message_en, 'ja');
 
                 // メッセージを更新
@@ -42,14 +68,20 @@ class MessageController extends Controller
                     'message_ja' => $message_ja
                 ]);
 
-                // チャット表示用のレスポンスを返す
+                Log::info('音声処理完了', [
+                    'message_en' => $message_en,
+                    'message_ja' => $message_ja
+                ]);
+
+            } catch (\Exception $e) {
+                Log::error('API処理エラー: ' . $e->getMessage());
                 return response()->json([
                     'success' => true,
                     'message' => [
                         'id' => $message->id,
                         'thread_id' => $thread_id,
-                        'message_en' => $message_en,
-                        'message_ja' => $message_ja,
+                        'message_en' => 'dummy',
+                        'message_ja' => 'API処理中にエラーが発生しました',
                         'sender' => 1,
                         'audio_file_path' => $path,
                         'created_at' => $message->created_at
@@ -57,10 +89,22 @@ class MessageController extends Controller
                 ]);
             }
 
-            return response()->json(['success' => false, 'message' => 'オーディオファイルが見つかりません'], 400);
+            return response()->json([
+                'success' => true,
+                'message' => [
+                    'id' => $message->id,
+                    'thread_id' => $thread_id,
+                    'message_en' => $message_en,
+                    'message_ja' => $message_ja,
+                    'sender' => 1,
+                    'audio_file_path' => $path,
+                    'created_at' => $message->created_at
+                ]
+            ]);
 
         } catch (\Exception $e) {
-            Log::error('メッセージ保存エラー: ' . $e->getMessage());
+            Log::error('予期せぬエラー: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => 'サーバーエラーが発生しました',
