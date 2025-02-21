@@ -32,6 +32,29 @@ export default function Show({ threads, initialMessages = [], threadId }) {
     }
   }, [messages, prevMessagesLength]);
 
+  // SSEの接続を設定
+  useEffect(() => {
+    const eventSource = new EventSource(`/thread/${threadId}/events`);
+
+    eventSource.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'message_update') {
+        setMessages(prevMessages =>
+          prevMessages.map(message =>
+            message.id === data.message.id
+              ? { ...message, ...data.message }
+              : message
+          )
+        );
+      }
+    };
+
+    // コンポーネントのアンマウント時にSSE接続を閉じる
+    return () => {
+      eventSource.close();
+    };
+  }, [threadId]);
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });

@@ -80,4 +80,33 @@ class ThreadController extends Controller
     {
         //
     }
+
+    public function events(Thread $thread)
+    {
+        return response()->stream(function () use ($thread) {
+            while (true) {
+                // メッセージの更新をチェック
+                $updates = Message::where('thread_id', $thread->id)
+                    ->where('updated_at', '>', now()->subSeconds(3))
+                    ->get();
+
+                if ($updates->isNotEmpty()) {
+                    foreach ($updates as $update) {
+                        echo "data: " . json_encode([
+                            'type' => 'message_update',
+                            'message' => $update
+                        ]) . "\n\n";
+                    }
+                }
+
+                ob_flush();
+                flush();
+                sleep(2);
+            }
+        }, 200, [
+            'Content-Type' => 'text/event-stream',
+            'Cache-Control' => 'no-cache',
+            'Connection' => 'keep-alive',
+        ]);
+    }
 }

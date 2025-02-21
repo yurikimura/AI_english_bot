@@ -29,4 +29,7 @@ Route::middleware(['auth'])->group(function () {
     ->name('message.translate')
     ->where('threadId', '[0-9]+')
     ->where('messageId', '[0-9]+');
+    // SSEイベントを取得
+    Route::get('/thread/{thread}/events', [ThreadController::class, 'events'])
+        ->name('thread.events');
 });
