@@ -83,4 +83,19 @@ class ApiService
 
             return 'ai_audio/' . $filename;
         }
+
+    public function callTranslationApi($messages)
+    {
+        $response = Http::withHeaders([
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+            'Content-Type' => 'application/json',
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => 'gpt-4o-mini',
+            'messages' => $messages,
+            'temperature' => 0.3, // 翻訳の場合は低めの温度を設定
+            'max_tokens' => 500,
+        ]);
+
+        return $response->json();
     }
+}

@@ -155,30 +155,12 @@ export default function Show({ threads, initialMessages = [], threadId }) {
           setMessages(prevMessages =>
             prevMessages.map(message =>
               message.id === messageId
-                ? { ...message, message_ja: response.data.translation }
+                ? { ...message, message_ja: response.data.message }
                 : message
             )
           );
-        } else {
-          // エラー時にデフォルトの日本語メッセージを設定
-          setMessages(prevMessages =>
-            prevMessages.map(message =>
-              message.id === messageId
-                ? { ...message, message_ja: 'これはダミーの日本語です' }
-                : message
-            )
-          );
-          console.error('翻訳エラー:', response.data);
         }
       } catch (error) {
-        // APIエラー時にもデフォルトの日本語メッセージを設定
-        setMessages(prevMessages =>
-          prevMessages.map(message =>
-            message.id === messageId
-              ? { ...message, message_ja: 'これはダミーの日本語です' }
-              : message
-          )
-        );
         console.error('翻訳APIエラー:', error);
       }
     }
