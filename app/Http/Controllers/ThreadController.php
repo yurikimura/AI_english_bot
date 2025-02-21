@@ -18,8 +18,14 @@ class ThreadController extends Controller
     public function index()
     {
         $threads = Thread::all();
+        $studyDates = Message::selectRaw('DATE(created_at) as date')
+            ->distinct()
+            ->pluck('date')
+            ->toArray();
+
         return Inertia::render('Thread/Index', [
-            'threads' => $threads
+            'threads' => $threads,
+            'studyDates' => $studyDates
         ]);
     }
 

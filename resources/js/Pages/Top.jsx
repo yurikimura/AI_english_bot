@@ -2,8 +2,9 @@ import React from 'react';
 import { Head } from '@inertiajs/react'
 import { Component as SideMenu } from '../Components/SideMenu'
 import LogoutButton from '@/Components/LogoutButton'
+import { StudyHeatmap } from '../Components/StudyHeatmap';
 
-export default function Top({ threads }) {
+export default function Top({ threads, studyDates }) {
   return (
     <>
       <Head title="Top" />
@@ -17,16 +18,7 @@ export default function Top({ threads }) {
             }} />
           </div>
 
-          <div className="grid grid-cols-11 gap-2">
-            {Array(55).fill(null).map((_, index) => (
-              <div
-                key={index}
-                className={`aspect-square rounded-sm ${
-                  index === 10 || index === 20 ? 'bg-green-500' : 'bg-gray-500'
-                }`}
-              />
-            ))}
-          </div>
+          <StudyHeatmap studyData={studyDates} />
         </div>
       </div>
     </>
