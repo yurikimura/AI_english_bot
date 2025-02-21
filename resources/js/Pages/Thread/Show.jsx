@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Head } from '@inertiajs/react'
 import { Component as SideMenu } from '../../Components/SideMenu'
 import LogoutButton from '@/Components/LogoutButton'
@@ -7,8 +7,30 @@ export default function Show({ threads, initialMessages = [], threadId }) {
   const [messages, setMessages] = useState(initialMessages || []);
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [playingAudioId, setPlayingAudioId] = useState(null);
+  const audioRefs = useRef({});
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
+  const [displayLanguages, setDisplayLanguages] = useState({});
+  const [prevMessagesLength, setPrevMessagesLength] = useState(0);
+
+  // 最新のメッセージの音声を自動再生する処理を追加
+  useEffect(() => {
+    if (messages.length > prevMessagesLength && prevMessagesLength !== 0) {
+      const latestMessage = messages[messages.length - 1];
+      // AIからの応答メッセージの場合のみ自動再生
+      if (latestMessage.audio_file_path && latestMessage.sender === 2) {
+        const audio = new Audio(`/storage/${latestMessage.audio_file_path}`);
+        audio.play().catch(error => {
+          console.error('音声の再生に失敗しました:', error);
+        });
+      }
+      setPrevMessagesLength(messages.length);
+    } else if (prevMessagesLength === 0) {
+      // 初期表示時は再生せずにメッセージ数だけ更新
+      setPrevMessagesLength(messages.length);
+    }
+  }, [messages, prevMessagesLength]);
 
   const startRecording = async () => {
     try {
@@ -82,9 +104,90 @@ export default function Show({ threads, initialMessages = [], threadId }) {
     }
   };
 
+  // 音声再生を制御する関数を追加
+  const handleAudioPlay = (messageId, audioPath) => {
+    if (!audioRefs.current[messageId]) {
+      audioRefs.current[messageId] = new Audio(`/storage/${audioPath}`);
+    }
+
+    const audio = audioRefs.current[messageId];
+
+    if (playingAudioId === messageId) {
+      // 同じ音声が再生中の場合は停止
+      audio.pause();
+      audio.currentTime = 0;
+      setPlayingAudioId(null);
+    } else {
+      // 他の音声が再生中の場合は停止
+      if (playingAudioId && audioRefs.current[playingAudioId]) {
+        audioRefs.current[playingAudioId].pause();
+        audioRefs.current[playingAudioId].currentTime = 0;
+      }
+
+      // 新しい音声を再生
+      audio.play().catch(error => {
+        console.error('音声の再生に失敗しました:', error);
+      });
+      setPlayingAudioId(messageId);
+
+      // 再生終了時の処理
+      audio.onended = () => {
+        setPlayingAudioId(null);
+      };
+    }
+  };
+
   // メッセージの送信者を変換する関数
   const getSenderDisplay = (senderCode) => {
     return senderCode === 1 ? "You" : "AI";
+  };
+
+  // 翻訳処理を行う関数を追加
+  const handleTranslate = async (messageId) => {
+    // 現在の表示言語を確認
+    const currentLang = displayLanguages[messageId] || 'en';
+
+    if (currentLang === 'en') {
+      try {
+        const response = await axios.post(`/thread/${threadId}/message/${messageId}/translate`);
+
+        if (response.data.success) {
+          setMessages(prevMessages =>
+            prevMessages.map(message =>
+              message.id === messageId
+                ? { ...message, message_ja: response.data.translation }
+                : message
+            )
+          );
+        } else {
+          // エラー時にデフォルトの日本語メッセージを設定
+          setMessages(prevMessages =>
+            prevMessages.map(message =>
+              message.id === messageId
+                ? { ...message, message_ja: 'これはダミーの日本語です' }
+                : message
+            )
+          );
+          console.error('翻訳エラー:', response.data);
+        }
+      } catch (error) {
+        // APIエラー時にもデフォルトの日本語メッセージを設定
+        setMessages(prevMessages =>
+          prevMessages.map(message =>
+            message.id === messageId
+              ? { ...message, message_ja: 'これはダミーの日本語です' }
+              : message
+          )
+        );
+        console.error('翻訳APIエラー:', error);
+      }
+    }
+
+    // 表示言語を切り替え
+    setDisplayLanguages(prev => ({
+      ...prev,
+      [messageId]: currentLang === 'en' ? 'ja' : 'en'
+    }));
   };
 
   return (
@@ -122,18 +225,30 @@ export default function Show({ threads, initialMessages = [], threadId }) {
                           <span className="text-white text-sm">{senderDisplay}</span>
                         </div>
                         <div className="bg-white rounded-lg p-3">
-                          {message.message_en}
+                          {displayLanguages[message.id] === 'ja' && message.message_ja ? message.message_ja : message.message_en}
                         </div>
                       </div>
                       {senderDisplay === "AI" && (
                         <div className="flex gap-2 ml-2">
-                          <button className="bg-gray-500 text-white p-2 rounded-full hover:bg-gray-600">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                              <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                          <button className="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600">
-                            A あ
+                          {message.audio_file_path && (
+                            <button
+                              className={`bg-gray-500 text-white p-2 rounded-full hover:bg-gray-600 ${
+                                playingAudioId === message.id ? 'bg-blue-500' : ''
+                              }`}
+                              onClick={() => handleAudioPlay(message.id, message.audio_file_path)}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          )}
+                          <button
+                            className={`bg-gray-500 text-white w-9 h-9 rounded-full hover:bg-gray-600 flex items-center justify-center ${
+                              displayLanguages[message.id] === 'ja' ? 'bg-blue-500' : ''
+                            }`}
+                            onClick={() => handleTranslate(message.id)}
+                          >
+                            Aあ
                           </button>
                         </div>
                       )}

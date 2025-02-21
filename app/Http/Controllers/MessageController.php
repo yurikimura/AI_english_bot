@@ -136,4 +136,9 @@ class MessageController extends Controller
             ], 500);
         }
     }
+
+    public function translate(Request $request, int $threadId, int $messageId)
+    {
+        return response()->json(['message' => 'これはダミーの日本語です']);
+    }
 }

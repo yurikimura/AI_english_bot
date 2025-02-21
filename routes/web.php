@@ -16,8 +16,17 @@ Route::get('/', function () {
 })->name('welcome');
 
 Route::middleware(['auth'])->group(function () {
+    // トップページ
     Route::get('/top', [TopController::class, 'index'])->name('top.index');
+    // 英会話画面を表示
     Route::get('/thread/{thread}', [ThreadController::class, 'show'])->name('thread.show');
+    // 新規スレッドを作成
     Route::get('/thread', [ThreadController::class, 'store'])->name('thread.store');
+    // メッセージを保存
     Route::post('/thread/{threadId}/message', [MessageController::class, 'store'])->name('message.store');
+    // メッセージを日本語に翻訳
+    Route::post('/thread/{threadId}/message/{messageId}/translate', [MessageController::class, 'translate'])
+    ->name('message.translate')
+    ->where('threadId', '[0-9]+')
+    ->where('messageId', '[0-9]+');
 });
