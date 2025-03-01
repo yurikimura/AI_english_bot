@@ -43,7 +43,7 @@ class ThreadController extends Controller
     public function store()
     {
         $thread = Thread::create([
-            'title' => now()->format('Y/m/d H:i')
+            'title' => now()->setTimezone('Asia/Tokyo')->format('Y/m/d H:i')
         ]);
 
         return redirect()->route('thread.show', ['thread' => $thread->id]);
