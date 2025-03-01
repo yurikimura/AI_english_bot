@@ -33,3 +33,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/thread/{thread}/events', [ThreadController::class, 'events'])
         ->name('thread.events');
 });
+
+Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+Route::post('/register', [RegisteredUserController::class, 'store']);

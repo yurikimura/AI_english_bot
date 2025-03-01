@@ -76,6 +76,15 @@ export default function Login({ status, canResetPassword }) {
                             </PrimaryButton>
                         </div>
                     </form>
+
+                    <div className="mt-4">
+                        <Link
+                            href={route('register')}
+                            className="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                        >
+                            新規登録
+                        </Link>
+                    </div>
                 </div>
             </div>
         </>
