@@ -72,5 +72,9 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "post-install-cmd": [
+        "php artisan optimize:clear",
+        "chmod -R 777 src/"
+    ]
 }
