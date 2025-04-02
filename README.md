@@ -5,6 +5,8 @@
 `cp .env.example .env`
 
 ```
+OPENAI_API_KEY=xxxxxxxx
+
 DB_CONNECTION=mysql
 DB_HOST=mysql
 DB_PORT=3306
