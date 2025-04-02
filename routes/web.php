@@ -10,10 +10,8 @@ use Inertia\Inertia;
 require __DIR__ . '/auth.php';
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'threads' => \App\Models\Thread::all()
-    ]);
-})->name('welcome');
+    return redirect()->route('login');
+});
 
 Route::middleware(['auth'])->group(function () {
     // トップページ
