@@ -32,10 +32,14 @@ DB_PASSWORD=password
 
 `sail artisan key:generate`
 
-`sail down`
+seedが成功していれば、test@example.com パスワード：password123 でログインできる。
 
 ### 別のターミナルで以下を実行
 
 `sail npm install`
 
 `sail npm run dev`
+
+### PHP側を修了するとき
+
+`sail down`
