@@ -54,7 +54,9 @@ class ThreadController extends Controller
      */
     public function show(Thread $thread)
     {
+        logger("1");
         $threads = Thread::all(); // サイドメニュー用にすべてのスレッドを取得
+        logger("2");
         return Inertia::render('Thread/Show', [
             'thread' => $thread,
             'threads' => $threads,

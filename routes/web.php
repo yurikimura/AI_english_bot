@@ -13,11 +13,14 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+// 英会話画面を表示
+Route::get('/thread/{thread}', [ThreadController::class, 'show'])->name('thread.show');
+
 Route::middleware(['auth'])->group(function () {
     // トップページ
     Route::get('/top', [TopController::class, 'index'])->name('top.index');
-    // 英会話画面を表示
-    Route::get('/thread/{thread}', [ThreadController::class, 'show'])->name('thread.show');
+    // // 英会話画面を表示
+    // Route::get('/thread/{thread}', [ThreadController::class, 'show'])->name('thread.show');
     // 新規スレッドを作成
     Route::get('/thread', [ThreadController::class, 'store'])->name('thread.store');
     // メッセージを保存

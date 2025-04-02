@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Service;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use App\Models\Message;
 
 class ApiService
@@ -69,19 +70,41 @@ class ApiService
          */
         public function callTtsApi($aiMessageText)
         {
-            $response = Http::withHeaders([
-                'content-type' => 'application/json',
-                'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
-            ])->post('https://api.openai.com/v1/audio/speech', [
-                'model' => 'tts-1',
-                'input' => $aiMessageText,
-                'voice' => 'nova',
-            ]);
+        $response = Http::withHeaders([
+            'content-type' => 'application/json',
+            'Authorization' => 'Bearer ' . env('OPENAI_API_KEY'),
+        ])->post('https://api.openai.com/v1/audio/speech', [
+            'model' => 'tts-1',
+            'input' => $aiMessageText,
+            'voice' => 'nova',
+        ]);
+        Log::info(env('OPENAI_API_KEY'). $aiMessageText);
+        Log::info($response->body());
+        Log::info('API Response', ['response' => $response->json()]);
 
-            // 音声ファイルを保存
-            $filename = 'speech_' . now()->format('Ymd_His') . '.mp3';
-            $filePath = storage_path('app/public/ai_audio/' . $filename);
-            file_put_contents($filePath, $response->body());
+        // 音声ファイルを保存
+        $filename = 'speech_' . now()->format('Ymd_His') . '.mp3';
+        $filePath = storage_path('app/public/ai_audio/' . $filename);
+        file_put_contents($filePath, $response);
+        // Log::info('API Response', ['response' => $response->body()]);
+
+        // Log::info("hi");
+        // $data = [
+        //     'model' => 'tts-1',
+        //     'input' => $aiMessageText,
+        //     'voice' => 'nova',
+        // ];
+
+        // $ch = curl_init('https://api.openai.com/v1/audio/speech');
+        // curl_setopt($ch, CURLOPT_HTTPHEADER, [
+        //     'Authorization: Bearer ' . env('OPENAI_API_KEY'),
+        //     'Content-Type: application/json'
+        // ]);
+        // curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        // $response = curl_exec($ch);
+        // curl_close($ch);
+
+
 
             return 'ai_audio/' . $filename;
         }
