@@ -80,10 +80,12 @@ class ApiService
 
             // 音声ファイルを保存
             $filename = 'speech_' . now()->format('Ymd_His') . '.mp3';
-            $filePath = storage_path('app/public/ai_audio/' . $filename);
-            file_put_contents($filePath, $response->body());
+            $filePath = 'ai_audio/' . $filename;
 
-            return 'ai_audio/' . $filename;
+            // Storageファサードを使用してファイルを保存
+            Storage::disk('public')->put($filePath, $response->body());
+
+            return $filePath;
         }
 
     public function callTranslationApi($messages)

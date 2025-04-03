@@ -85,7 +85,7 @@ class MessageController extends Controller
                 $aiAudioFilePath = $apiService->callTtsApi($aiMessageText);
                 // 音声ファイルをDBに保存
                 $assistantMessage->update([
-                    'audio_file_path' => $aiAudioFilePath, // 音声ファイルのパスを保存
+                    'audio_file_path' => 'ai_audio/' . basename($aiAudioFilePath), // 音声ファイルのパスを保存
                 ]);
 
                 return response()->json([
@@ -104,7 +104,7 @@ class MessageController extends Controller
                             'message_en' => $assistantMessage->message_en,
                             'message_ja' => '',
                             'sender' => Message::SENDER_AI,
-                            'audio_file_path' => null,
+                            'audio_file_path' => $assistantMessage->audio_file_path,
                             'created_at' => $assistantMessage->created_at
                         ]
                     ]
