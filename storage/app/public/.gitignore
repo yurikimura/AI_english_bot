@@ -1,5 +1,3 @@
-# すべて無視
-*
 # .gitignore 自身は除外
 !.gitignore
 # ai_audio フォルダは無視しない（フォルダ構造を残す）
