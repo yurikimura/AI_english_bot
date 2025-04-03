@@ -1,6 +1,14 @@
+# すべて無視
 *
+# .gitignore 自身は除外
 !.gitignore
+# ai_audio フォルダは無視しない（フォルダ構造を残す）
 !ai_audio/
+# ai_audio フォルダ内のすべてのファイルは無視
+ai_audio/*
+# ただし .gitkeep は除外
 !ai_audio/.gitkeep
-!ai_audio/
-!ai_audio/.gitkeep
+
+!audio/
+audio/*
+!audio/.gitkeep
