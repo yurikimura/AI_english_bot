@@ -33,7 +33,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect('/top');
+        return redirect()->route('thread.show', ['thread' => 1]);
     }
 
     /**
