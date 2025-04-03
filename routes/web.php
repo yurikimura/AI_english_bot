@@ -14,8 +14,8 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth'])->group(function () {
-    // トップページ
-    Route::get('/top', [TopController::class, 'index'])->name('top.index');
+    // // トップページ
+    // Route::get('/top', [TopController::class, 'index'])->name('top.index');
     // 英会話画面を表示
     Route::get('/thread/{thread}', [ThreadController::class, 'show'])->name('thread.show');
     // 新規スレッドを作成
