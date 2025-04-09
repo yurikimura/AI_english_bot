@@ -10,7 +10,7 @@ use Inertia\Inertia;
 require __DIR__ . '/auth.php';
 
 Route::get('/', function () {
-    return redirect()->route('thread.show', ['thread' => 1]);
+    return redirect()->route('thread.index');
 });
 
 Route::middleware(['auth'])->group(function () {

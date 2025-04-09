@@ -217,7 +217,7 @@ export default function Show({ threads, initialMessages = [], threadId }) {
       )}
 
       <div className="flex min-h-screen bg-gray-700">
-        {/* <SideMenu threads={threads} /> */}
+        <SideMenu threads={threads} />
         <div className="flex-1 h-screen p-8 flex flex-col">
           <div className="flex justify-end mb-8 shrink-0">
             <LogoutButton onClick={() => {
