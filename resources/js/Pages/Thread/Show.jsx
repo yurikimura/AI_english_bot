@@ -55,6 +55,20 @@ export default function Show({ threads, initialMessages = [], threadId }) {
     };
   }, [threadId]);
 
+  useEffect(() => {
+    return () => {
+      Object.values(audioRefs.current).forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
+      audioRefs.current = {};
+      
+      if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [threadId]);
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -109,6 +123,9 @@ export default function Show({ threads, initialMessages = [], threadId }) {
     } catch (error) {
       console.error('Error accessing microphone:', error);
       alert('マイクへのアクセスができませんでした。ブラウザの設定を確認してください。');
+      if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+        mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      }
     }
   };
 
@@ -116,6 +133,8 @@ export default function Show({ threads, initialMessages = [], threadId }) {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+    } else if (mediaRecorderRef.current && mediaRecorderRef.current.stream) {
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
     }
   };
 
@@ -129,20 +148,26 @@ export default function Show({ threads, initialMessages = [], threadId }) {
 
   // 音声再生を制御する関数を追加
   const handleAudioPlay = (messageId, audioPath) => {
-    if (!audioRefs.current[messageId]) {
-      // 音声ファイルのパスを修正
-      const fullAudioPath = `/storage/${audioPath}`;
-      console.log('Attempting to play audio:', fullAudioPath);
-
-      audioRefs.current[messageId] = new Audio(fullAudioPath);
-
-      // エラーハンドリングを追加
-      audioRefs.current[messageId].onerror = (e) => {
-        console.error('音声ファイルの読み込みに失敗しました:', e);
-        console.error('Audio element error:', audioRefs.current[messageId].error);
-        alert('音声ファイルの読み込みに失敗しました。ファイルパス: ' + fullAudioPath);
-      };
+    if (!audioPath) {
+      console.error('Audio path is missing for message:', messageId);
+      return;
     }
+
+    const fullAudioPath = `/storage/${audioPath}`;
+    
+    if (audioRefs.current[messageId]) {
+      audioRefs.current[messageId].pause();
+      audioRefs.current[messageId].src = '';
+    }
+
+    audioRefs.current[messageId] = new Audio(fullAudioPath);
+    
+    audioRefs.current[messageId].onerror = (e) => {
+      console.error('音声ファイルの読み込みに失敗しました:', e);
+      console.error('Audio element error:', audioRefs.current[messageId].error);
+      alert('音声ファイルの読み込みに失敗しました。ファイルパス: ' + fullAudioPath);
+      delete audioRefs.current[messageId];
+    };
 
     const audio = audioRefs.current[messageId];
 
@@ -156,14 +181,13 @@ export default function Show({ threads, initialMessages = [], threadId }) {
         audioRefs.current[playingAudioId].currentTime = 0;
       }
 
-      // 再生前に音声をリロード
-      audio.load();
-
       audio.play().catch(error => {
         console.error('音声の再生に失敗しました:', error);
         console.error('Audio element error:', audio.error);
         alert('音声の再生に失敗しました。');
+        delete audioRefs.current[messageId];
       });
+      
       setPlayingAudioId(messageId);
 
       audio.onended = () => {
